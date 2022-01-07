@@ -9,4 +9,4 @@ pluginManagement {
     }
 }
 rootProject.name='quarkus-realworld'
-include 'pj-web'
+include 'pj-web','pj-db'

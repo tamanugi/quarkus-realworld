@@ -1,0 +1,15 @@
+plugins {
+    id "org.flywaydb.flyway" version "8.3.0"
+}
+
+dependencies {
+    runtimeOnly "org.postgresql:postgresql:42.3.1"
+}
+
+flyway {
+    driver = 'org.postgresql.Driver'
+    url = 'jdbc:postgresql://localhost:5432/postgres'
+    user = 'postgres'
+    password = 'postgres'
+    schemas = ['public']
+}
