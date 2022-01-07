@@ -1,15 +1,76 @@
 plugins {
     id "org.flywaydb.flyway" version "8.3.0"
+    id 'nu.studer.jooq' version '6.0.1'
 }
+
+def dbHost = "localhost"
+def dbPort = "5432"
+def dbName = "postgres"
+def dbUrl = "jdbc:postgresql://${dbHost}:${dbPort}/${dbName}"
+def dbUser = "postgres"
+def dbPassword = "postgres"
+def jdbcDriver = "org.postgresql.Driver"
+
+def jooqDestDir = "$buildDir/jooq-gen/"
+def jooqDestPackage = 'com.tamanugi'
+
 
 dependencies {
     runtimeOnly "org.postgresql:postgresql:42.3.1"
+    jooqGenerator "org.postgresql:postgresql:42.3.1"
 }
 
 flyway {
-    driver = 'org.postgresql.Driver'
-    url = 'jdbc:postgresql://localhost:5432/postgres'
-    user = 'postgres'
-    password = 'postgres'
+    url = "${dbUrl}"
+    user = "${dbUser}"
+    password = "${dbPassword}"
     schemas = ['public']
+}
+
+jooq {
+    version = '3.15.1'
+    configurations {
+        main {
+            generationTool {
+                jdbc {
+                    driver = "${jdbcDriver}"
+                    url = "${dbUrl}"
+                    user = "${dbUser}"
+                    password = "${dbPassword}"
+                }
+
+                generator {
+                    target {
+                        packageName = "${jooqDestPackage}"
+                        directory = "${jooqDestDir}"
+                    }
+                    database() {
+                        name = 'org.jooq.meta.postgres.PostgresDatabase'
+                        inputSchema = "public"
+                    }
+                    generate() {
+                        daos = true
+                        immutablePojos = true
+                        pojosEqualsAndHashCode = true
+                    }
+                }
+            }
+        }
+    }
+}
+
+tasks.named('generateJooq').configure {
+    // make task participate in incremental builds (which is also a prerequisite for participating in build caching)
+    allInputsDeclared = true
+
+    // make task participate in build caching
+    outputs.cacheIf { true }
+
+    // Trigger a migration of the Flyway table
+    dependsOn(tasks.named('flywayMigrate'))
+
+    // Declare migration scripts as inputs
+    inputs.files(fileTree('src/main/resources/db/migration'))
+            .withPropertyName('migrations')
+            .withPathSensitivity(PathSensitivity.RELATIVE)
 }
